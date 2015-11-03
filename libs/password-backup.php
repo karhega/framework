@@ -1,0 +1,59 @@
+<?php
+	/**
+	 * @author Karen Hernández <karhega@gmail.com>
+	 * @version 1.0
+	 * @copyright karhega 2015
+	 **/
+
+
+	class password
+	{
+		public function __construct(){
+			$this->checkblowfish();
+
+		}
+		/**
+		 * checkblowfish checks the codification algorythm
+		 * @return void 
+		 */
+		private function checkblowfish(){
+			if(!defined("CRYPT_BLOWFISH") && !CRYPT_BLOWFISH)
+			{
+				echo "Algoritm Blowfish no esta soportado";
+				die();
+			}		
+		}
+
+		/**
+		 * getpassword is a method to generate the hash of passwords
+		 * @param  string $password base password to generate the hash 
+		 * @return string hash of passwords generated
+		 */
+		static public function getpassword($password){
+			$option = array(
+					"cost" => 7
+				);
+			/**
+			 * $hash variable that saves the hash generated
+			 * @var string
+			 */
+			$hash = password_hash($password, PASSWORD_BCRYPT, $option);
+
+			return $hash;
+		}
+		/**
+		 * passwordverify description of the verifications of passwords
+		 * @param  string $pass1 hash to compare from 
+		 * @param  string $pass2 hash base
+		 * @return boolean    
+		 */
+		static public function passwordverify($pass1, $pass2){
+			if(password_verify($pass1, $pass2)) {
+				return true;
+			}
+
+			return false;
+		}
+
+	}
+?>
