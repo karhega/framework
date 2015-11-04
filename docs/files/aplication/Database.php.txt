@@ -1,0 +1,228 @@
+<?php
+	class classPDO
+	{
+	/**
+	 * @author Karen Hernández <karhega@gmail.com>
+	 * @version 1.0
+	 * @copyright karhega 2015
+	 * 
+	 * Clase PDO for the connection to the database
+	 * @var  $conection saves the conection to the database
+	 * @var  $dsn saves the dsn of the connection
+	 * @var  $drive holds the controller of the database
+	 * @var  $host holds the server where the database is hosted
+	 * @var  $database holds the name of the database
+	 * @var  $username holds the name of the user of the database
+	 * @var  $password holds the password of the database
+	 * @var  $result holds the result of the connection
+	 * @var  $lasInsertId holds the last id added
+	 * @var  $number_Rows holds the quantity of rows affected
+	 */
+		public $connection;
+		private $dsn;
+		private $drive;
+		private $host;
+		private $database;
+		private $username;
+		private $password;
+		public $result;
+		public $lastInsertId;
+		public $numbers_Rows;
+
+		public function __construct(
+				$drive 	= 	'mysql',
+				$host 	=	'localhost',
+				$database =	'gestion',
+				$username =	'root',
+				$password =	''
+			){
+			$this->drive 		= $drive;
+			$this->host 		= $host;
+			$this->database 	= $database;
+			$this->username 	= $username;
+			$this->password 	= $password;
+			$this->connection();
+		}
+
+		public function connection(){
+			/**
+			 * make sthe connection to the database
+			 * @return void
+			 **/
+			$this->dsn = $this->drive.':host='.$this->host.';dbname='.$this->database;
+
+			try{
+				$this->connection = new PDO(
+						$this->dsn,
+						$this->username,
+						$this->password
+					);
+				$this->connection->setAttribute(
+						PDO::ATTR_ERRMODE,
+						PDO::ERRMODE_EXCEPTION
+					);
+			}catch(PDOException $e){
+				echo "ERROR: ".$e->getMessage();
+				die();
+			}
+		}
+
+		/**
+		 * Creation of the method find
+		 * @param  string $table   name of the table
+		 * @param  string $query   stores the type of search
+		 * @param  string $options holds the result of the query(consult
+		 * @return string  $result result of the query
+		 */
+		public function find($table = null, $query = null, $options = array()){
+			$fields = '*';
+			$parameters = '';
+
+
+			if (!empty($options['field'])) {
+				$fields = $options['field'];
+			}
+
+			if (!empty($options['conditions'])) {
+				$parameters = ' WHERE ' .$options['conditions'];
+			}
+
+			if (!empty($options['group'])) {
+				$parameters .= ' GROUP BY ' .$options['group'];
+			}
+
+			if (!empty($options['order'])) {
+				$parameters .= ' ORDER BY ' .$options['order'];
+			}
+
+			if (!empty($options['limit'])) {
+				$parameters .= ' LIMIT ' .$options['limit'];
+			}
+
+			switch ($query) {
+				/**
+				 * @param string $fields holds the quantity of fields to select in the query
+				 * @param string $parameters holds the parameters of the query
+				 **/
+				case 'all':
+					$sql = "SELECT $fields FROM $table".' '.$parameters;
+					$this->result = $this->connection->query($sql);
+					break;
+				case 'count':
+					$sql = "SELECT COUNT(*) FROM $table".' '.$parameters;
+					$result = $this->result = $this->connection->query($sql);
+					$this->result = $result->fetchColumn();
+					break;
+				case 'first':
+					$sql = "SELECT $fields FROM $table".' '.$parameters;
+					$result = $this->result = $this->connection->query($sql);
+					$this->result = $result->fetch();
+
+					break;
+				
+				default:
+					$sql = "SELECT $fields FROM $table".' '.$parameters;
+					$this->result = $this->connection->query($sql);
+					break;
+			}
+			return $this->result;
+		}
+		/**
+		 * creation of the method save to insert info in the database
+		 * @param string $table holds the name of the table
+		 * @param array $data contains the data that will be added
+		 * @param string $sql holds the insertion of the instruction
+		 * @return object $result the result of the query
+		 */
+		
+		public function save($table = null, $data = array()){
+			//get the number of columns
+			$sql = "SELECT * FROM $table";
+			$result = $this->connection->query($sql);
+
+			for ($i=0; $i < $result->columnCount(); $i++) { 
+				$meta = $result->getColumnMeta($i);
+				$fields[$meta['name']] = null;
+			}
+			/**
+			 * Convection of name, tables in plural and singular fields
+			 * With a primary key named ID, Null and autoincrement
+			**/
+			$fieldsToSave = 'id';
+			$valueToSave = 'NULL';
+
+			foreach ($data as $key => $value) {
+				if (array_key_exists($key, $fields)) {
+					$fieldsToSave .= ', ' .$key;
+					$valueToSave  .= ', '."\"$value\"";				
+				}
+			}
+		
+
+		$sql = "INSERT INTO $table ($fieldsToSave) 
+		VALUES ($valueToSave);";
+
+		$this->result = $this->connection->query($sql);
+
+		return $this->result;
+
+		}
+		/**
+		 * Creation of the method update
+		 * @param  string $table holds the name of the table
+		 * @param  array  $data  holds the data that will be updated
+		 * @var string $sql holds the instruction of the sql
+		 * @return object as a result of the query
+		 */
+	public function update($table = null, $data = array()){
+		$sql = "SELECT * FROM $table";
+			$result = $this->connection->query($sql);
+
+			for ($i=0; $i < $result->columnCount(); $i++) { 
+				$meta = $result->getColumnMeta($i);
+				$fields[$meta['name']] = null;
+			}
+			if (array_key_exists("id", $data)) {
+				$fieldsToSave = "";
+				$id = $data['id'];
+				unset($data['id']);
+
+				foreach ($data as $key => $value) {
+					if (array_key_exists($key, $fields)){
+						$fieldsToSave .= $key."="."\"$value\", ";
+					}
+				}
+				$fieldsToSave = substr_replace($fieldsToSave, "", -2);
+				$sql = "UPDATE $table SET $fieldsToSave WHERE $table.id=$id;";
+			}	
+			$this->result = $this->connection->query($sql);
+			return $this->result;
+
+	}
+	/**
+	 * Creation of the method delete
+	 * @param  string $table holds the name of the table
+	 * @param  string  $conditions  holds the condition of the query
+	 * @return object as a result of the query
+	 */
+	
+	public function delete($table = null, $conditions){
+		$sql = "DELETE FROM $table WHERE $conditions".";";
+		$this->result = $this->connection->query($sql);
+
+		$this->numberRows = $this->result->rowCount();
+		return $this->result;
+	}
+
+}
+/**
+ * @var $db creats the instance of the class PDO
+ **/
+
+
+$db = new classPDO();
+
+
+
+
+?>

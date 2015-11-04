@@ -1,0 +1,61 @@
+<?php
+
+class Bootstrap
+{
+	/**
+	 * @author Karen <karhega@gmail.com>
+	 * @version 1.0
+	 * @copyright karhega 2015
+	 * 
+	 * Execute run from the Class request
+	 * @param string $petition parameter that receives information from reques
+	 * @var string $controller stocks in controlador
+	 * @var  string $rutaControlador saves the root from controlador
+	 * @var  string $metodo invokes the function getMethod from request
+	 * @var  string $args invokes the function gerArgs from Request
+	 * 
+	 **/
+	
+	public static function run(Request $peticion){
+		$controller = $peticion->getControlador().'Controller';
+		$rutaControlador = ROOT.'controllers'. DS . $controller . '.php';
+		$metodo = $peticion->getMetodo();
+		$args = $peticion->getArgs();
+/**Tells whether a file exists in $ruraControlador 
+*and is readable 
+**/
+ 
+		if (is_readable($rutaControlador)) {
+			include_once $rutaControlador;
+			$controlador = new $controller;
+				/**
+				 * Verifies that the contents can be called as a function
+				 */
+				if (is_callable(array($controller, $metodo))) {
+					$metodo = $peticion->getMetodo();
+				}else{
+					$metodo = 'index';
+				}
+
+				if ($metodo =='login') {
+					
+				}else{
+					Authorization::logged();
+				}
+				/**
+				 * isset - Determinates if the variable is sent and is not NULL
+				 * call_user_func_array - Calls a callback with an array of parameters
+				 */
+				
+				if(isset($args)){
+					call_user_func_array(array($controlador, $metodo), $args);
+				}else{
+					call_user_func_array(array($controller, $metodo));
+				}
+		}else{
+			throw new Exception("Controlador no encontrado");
+			
+		}
+
+	}
+}
